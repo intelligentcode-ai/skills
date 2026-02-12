@@ -1,6 +1,6 @@
 ---
 name: process
-description: Activate when user explicitly requests the development workflow process, asks about workflow phases, or says "start work", "begin development", "follow the process". Activate when creating PRs or deploying to production. NOT for simple questions or minor fixes. Executes AUTONOMOUSLY - only pauses when human decision is genuinely required.
+description: Activate when user explicitly requests the development workflow process, asks about workflow phases, or says "start work", "begin development", "follow the process". Activate when creating PRs or deploying to production. NOT for simple questions or minor fixes. Enforces TDD by default for implementation work and executes AUTONOMOUSLY - only pauses when human decision is genuinely required.
 version: 10.2.14
 ---
 
@@ -31,8 +31,9 @@ feature/* ← WHERE WORK HAPPENS
 1. **Fix issues automatically** - Don't ask permission for obvious fixes
 2. **Implement safe improvements automatically** - Low effort + safe = just do it
 3. **Loop until clean** - Keep fixing until tests pass and no findings
-4. **Only pause for genuine decisions** - Ambiguity, architecture, risk
-5. **PR to dev by default** - Never PR to main unless releasing
+4. **TDD by default** - RED -> GREEN -> REFACTOR before production code
+5. **Only pause for genuine decisions** - Ambiguity, architecture, risk
+6. **PR to dev by default** - Never PR to main unless releasing
 
 ## Phase Overview
 
@@ -96,9 +97,15 @@ IF similar problem solved before:
 This step is SILENT - no user notification needed.
 ```
 
-### Step 1.1: Implement
+### Step 1.1: TDD Gate + Implement
 ```
-Implement feature/fix
+Run tdd skill for implementation tasks:
+  - Define a small test plan (happy path, edge, error, regression).
+  - Write failing test first (RED) and record failing evidence.
+  - Implement the minimum code change to pass (GREEN).
+  - Refactor safely while tests stay green.
+
+Only skip this step if the user explicitly says tests are out of scope.
 ```
 
 ### Step 1.2: Test Loop

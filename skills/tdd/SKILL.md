@@ -1,12 +1,19 @@
 ---
 name: tdd
-description: Activate when user asks for Test-Driven Development, test-first implementation, red-green-refactor, or writing tests before code. Use for feature work, bug fixes, and refactors where behavior can be specified and verified incrementally with automated tests.
+description: Activate when user asks for Test-Driven Development, test-first implementation, red-green-refactor, or enforcing tests before code. Use for feature work, bug fixes, and refactors; treat TDD as the default rule unless the user explicitly waives it.
 version: 10.2.14
 ---
 
 # TDD Skill
 
 General-purpose Test-Driven Development workflow for product code.
+
+## Rule
+
+For implementation work, TDD is the default.
+- Do not start with production code changes.
+- Start with a test plan, then failing tests (`RED`), then minimum code (`GREEN`), then cleanup (`REFACTOR`).
+- Only skip TDD when the user explicitly says tests are out of scope.
 
 ## When to Use
 
@@ -46,7 +53,20 @@ General-purpose Test-Driven Development workflow for product code.
    - Add the next failing test for the next behavior slice.
    - Continue until acceptance criteria are covered.
 
-## Test Planning Pattern
+## Acceptance Tests (for this skill)
+
+| Test ID | Type | Prompt / Condition | Expected Result |
+| --- | --- | --- | --- |
+| T1 | Positive trigger | "Implement this in TDD" | skill triggers |
+| T2 | Positive trigger | "Write tests first, then code" | skill triggers |
+| T3 | Positive trigger | "Red green refactor this bug fix" | skill triggers |
+| T4 | Negative trigger | "Polish this dashboard layout" | skill does not trigger |
+| T5 | Negative trigger | "Draft release notes only" | skill does not trigger |
+| T6 | Behavior | skill triggered for code change | requires test plan + RED evidence before implementation |
+| T7 | Behavior | bug fix workflow | regression test added first, initially failing |
+| T8 | Behavior | completion | reports failing-to-passing evidence and final suite result |
+
+## Test Planning Pattern (implementation work)
 
 Before coding, define lightweight acceptance checks:
 
@@ -65,6 +85,8 @@ Before coding, define lightweight acceptance checks:
 - For bug fixes, write the regression test before the code fix.
 - For legacy code, write characterization tests first, then refactor.
 - Run full relevant test suite before finishing.
+- Record the command/output proving the first failing test run.
+- Record the command/output proving the final passing run.
 
 ## Validation Checklist
 

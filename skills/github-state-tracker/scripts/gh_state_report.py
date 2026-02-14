@@ -85,6 +85,7 @@ def normalize_issue(item: dict[str, Any]) -> dict[str, Any]:
     body = item.get("body") or ""
     parent_match = PARENT_RE.search(body)
     parent = int(parent_match.group(1)) if parent_match else None
+    parent_source = "body-trace" if parent_match else "none"
 
     issue_type = extract_label(labels, TYPE_PREFIX, "untyped")
     priority = extract_label(labels, PRIORITY_PREFIX, "unprioritized")
@@ -97,6 +98,7 @@ def normalize_issue(item: dict[str, Any]) -> dict[str, Any]:
         "type": issue_type,
         "priority": priority,
         "parent": parent,
+        "parentSource": parent_source,
         "assignees": [a.get("login") for a in (item.get("assignees") or []) if a.get("login")],
         "createdAt": item.get("createdAt"),
         "updatedAt": item.get("updatedAt"),
@@ -183,8 +185,10 @@ def build_report(repo: str, snapshot_at: str, issues: list[dict[str, Any]], delt
             f"- Changed: {delta['counts']['changed']}",
             "",
             "## Top Open Priorities",
-            "| Priority | Type | Issue | Parent | Title |",
-            "| --- | --- | --- | --- | --- |",
+            "_Parent column may be derived from body trace markers unless native relationship data is provided._",
+            "",
+            "| Priority | Type | Issue | Parent | Parent Source | Title |",
+            "| --- | --- | --- | --- | --- | --- |",
         ]
     )
 
@@ -196,9 +200,10 @@ def build_report(repo: str, snapshot_at: str, issues: list[dict[str, Any]], delt
         safe_priority = escape_md_cell(issue.get("priority"))
         safe_type = escape_md_cell(issue.get("type"))
         safe_parent = escape_md_cell(parent)
+        safe_parent_source = escape_md_cell(issue.get("parentSource"))
         safe_title = escape_md_cell(issue.get("title"))
         lines.append(
-            f"| {safe_priority} | {safe_type} | {issue_ref} | {safe_parent} | {safe_title} |"
+            f"| {safe_priority} | {safe_type} | {issue_ref} | {safe_parent} | {safe_parent_source} | {safe_title} |"
         )
 
     return "\n".join(lines) + "\n"

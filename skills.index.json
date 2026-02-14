@@ -155,6 +155,14 @@
       "website": "https://vanillacore.net"
     },
     {
+      "name": "create-work-items",
+      "description": "Activate when users ask to create or capture work items. Classifies and creates typed items (epic, story, feature, bug, finding, work-item), resolves missing fields with focused clarification, and publishes to the configured tracking backend.",
+      "version": "10.2.14",
+      "author": "Karsten Samaschke",
+      "contactEmail": "karsten@vanillacore.net",
+      "website": "https://vanillacore.net"
+    },
+    {
       "name": "database-engineer",
       "description": "Activate when user needs database work - schema design, query optimization, migrations, data modeling. Activate when the database-engineer skill is requested or work involves database design or performance tuning.",
       "category": "role",
@@ -589,6 +597,14 @@
         "automation",
         "quality-gates"
       ],
+      "version": "10.2.14",
+      "author": "Karsten Samaschke",
+      "contactEmail": "karsten@vanillacore.net",
+      "website": "https://vanillacore.net"
+    },
+    {
+      "name": "run-work-items",
+      "description": "Activate when users ask to execute queued work. Selects next actionable item from the configured backend, runs implementation with process quality gates, and continuously updates item state until completion.",
       "version": "10.2.14",
       "author": "Karsten Samaschke",
       "contactEmail": "karsten@vanillacore.net",

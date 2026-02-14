@@ -1,6 +1,6 @@
 ---
 name: work-queue
-description: Activate when user has a large task to break into smaller work items. Activate when user asks about work queue status or what remains to do. Activate when managing sequential or parallel execution. Selects issue-tracking backend via config (project/global), prefers configured provider (GitHub/Linear/Jira), and falls back to .agent/queue for cross-platform work tracking.
+description: Compatibility skill for legacy queue commands. Delegates to create-work-items, plan-work-items, and run-work-items while preserving .agent/queue fallback and config-driven tracking backend selection.
 version: 10.2.14
 author: "Karsten Samaschke"
 contact-email: "karsten@vanillacore.net"
@@ -9,7 +9,14 @@ website: "https://vanillacore.net"
 
 # Work Queue Skill
 
-Manage work items using a configurable tracking backend with `.agent/queue/` as guaranteed fallback.
+Compatibility layer for legacy queue phrasing.
+
+Canonical skills:
+- `create-work-items`
+- `plan-work-items`
+- `run-work-items`
+
+Use this skill when users still ask for "work queue" directly.
 
 ## Tracking Backend Selection (MANDATORY)
 
@@ -170,6 +177,8 @@ GitHub backend equivalent:
 ```bash
 # Use github-issues-planning skill workflow to create typed issue
 # type/work-item + priority label + optional parent issue
+# IMPORTANT: "Parent: #123" body text is trace-only.
+# Create and verify native GitHub parent/child relationship separately.
 ```
 
 ### Update Status
@@ -216,6 +225,7 @@ GitHub backend equivalent:
 
 1. **PM breaks down story**:
 - `provider=github` and ready → create GitHub typed issues
+- For parent/child links on GitHub: create native relationship and verify it exists
 - other provider unavailable or `provider=file-based` → create `.agent/queue/` files
 2. **Agent picks next item**:
 - GitHub issue in priority order or next pending local file
@@ -225,6 +235,16 @@ GitHub backend equivalent:
 - continue using selected backend
 
 ## Queue Commands
+
+Human-friendly action mapping:
+- **create** -> add/classify work items
+- **plan** -> prioritize/order/dependency-manage items
+- **run** -> execute next actionable item(s)
+
+Canonical delegation:
+- `create` -> `create-work-items`
+- `plan` -> `plan-work-items`
+- `run` -> `run-work-items`
 
 **Check queue status:**
 ```
@@ -250,5 +270,8 @@ Works with:
 - autonomy skill - Automatic continuation through queue
 - process skill - Quality gates between items
 - pm skill - Story breakdown into queue items
+- create-work-items skill - Typed item creation across backends
+- plan-work-items skill - Prioritization, dependencies, hierarchy checks
+- run-work-items skill - Next-item execution and state tracking
 - github-issues-planning skill - Typed GitHub issue creation and hierarchy
 - github-state-tracker skill - Continuous status/reporting and prioritization

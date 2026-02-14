@@ -57,7 +57,7 @@ TaskOutput with task_id, block: true
 
 ## Queue-Based Execution
 
-Use selected backend queue from `work-queue` contract:
+Use selected backend queue from `plan-work-items` / `run-work-items` contract:
 - Project/global tracking config decides provider
 - `.agent/queue/` is fallback and offline-safe mode
 

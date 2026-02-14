@@ -27,7 +27,7 @@ Software implementation specialist with 10+ years expertise in software developm
 - Apply memory patterns and best practices
 - Update work item status on completion
 
-Backend selection is config-first via `work-queue` skill contract:
+Backend selection is config-first via `plan-work-items` / `run-work-items` contract:
 - `.agent/tracking.config.json` (project)
 - `${ICA_HOME}/tracking.config.json` (global)
 - `$HOME/.codex/tracking.config.json` or `$HOME/.claude/tracking.config.json` (fallback)

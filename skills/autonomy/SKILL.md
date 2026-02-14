@@ -17,7 +17,7 @@ website: "https://vanillacore.net"
 |---------|--------|
 | Subagent returns completed work | Check selected tracking backend for next item |
 | Task finishes successfully | Update status, pick next pending item |
-| Work pattern detected in user message | Add to work queue if L2/L3 |
+| Work pattern detected in user message | Create work items if L2/L3 |
 | Multiple tasks identified | Queue all, parallelize if L3 |
 
 ## Tracking Backend Selection (MANDATORY)
@@ -92,6 +92,11 @@ After work completes:
 5. If no more work → Report completion to user
 ```
 
+Human-friendly action mapping:
+- **create** when new work is discovered
+- **plan** when reprioritization/dependency updates are needed
+- **run** when selecting and executing the next actionable item
+
 ## Work Detection
 
 **Triggers queue addition:**
@@ -116,7 +121,10 @@ Local `.agent/queue/` remains cross-platform fallback:
 - Other agents: Queue files directly
 
 See:
-- `work-queue` skill for queue management details
+- `create-work-items` for creating newly discovered items
+- `plan-work-items` for reprioritization and dependency refresh
+- `run-work-items` for selecting and executing next actionable item
+- `work-queue` skill for legacy queue management phrasing
 - `github-issues-planning` for issue lifecycle operations
 - `github-state-tracker` for prioritized status retrieval
 

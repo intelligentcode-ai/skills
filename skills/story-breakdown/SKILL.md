@@ -36,6 +36,7 @@ When backend is unsupported/unavailable, use `.agent/queue/`.
 3. **Set dependencies** - Note which items block others
 4. **Assign roles** - Specify the role skill for execution (for example `developer`, `reviewer`)
 5. **Add to queue** - Create items in selected backend (`github`/future provider/file-based)
+6. **Canonical flow** - Use `create-work-items` for creation and `plan-work-items` for ordering/dependencies
 
 ## Work Item Creation
 
@@ -89,7 +90,9 @@ Story: "Add user authentication"
 
 GitHub backend equivalent:
 - Parent epic issue: authentication initiative
-- Child story/work-item issues linked via parent-child relationship
+- Child story/work-item issues linked via native GitHub parent-child relationship
+- `Parent: #123` body text is trace-only and does not create the relationship
+- Verify parent/child link exists before considering decomposition complete
 
 With dependencies:
 - 002 blocked by 001

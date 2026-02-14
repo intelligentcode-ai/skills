@@ -37,7 +37,7 @@ Provider values:
 - `jira` (future)
 - `file-based`
 
-Use `work-queue` as source of truth for config contract and backend routing behavior.
+Use `plan-work-items` as source of truth for planning behavior and `work-queue` for legacy compatibility.
 
 Use this detection pattern:
 
@@ -75,10 +75,16 @@ done
 3. **Size Management**: If large, break into smaller work items
 4. **Role Assignment**: Use PM+Architect collaboration for specialist selection
 5. **Work Item Creation**:
+- Use `create-work-items` as primary workflow for typed item creation.
 - If provider is `github` and available: create typed issues via `github-issues-planning`.
 - If provider is `linear`/`jira` and provider skill exists: create provider-native items.
-- Otherwise: create `.agent/queue/` items via `work-queue`.
-6. **Sequential Naming**: Use NNN-status-description.md format
+- Otherwise: create `.agent/queue/` items (legacy-compatible via `work-queue`).
+6. **Relationship Validation (GitHub)**:
+- For parent/child structures, create native GitHub relationships (sub-issue link), not just `Parent: #123` text in bodies.
+- Verify relationship exists before reporting planning complete.
+7. **Planning Pass**:
+- Run `plan-work-items` to prioritize, dependency-map, and identify next actionable items.
+8. **Sequential Naming**: Use NNN-status-description.md format
 
 ## Dynamic Specialist Creation
 

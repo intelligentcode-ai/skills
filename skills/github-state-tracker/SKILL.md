@@ -87,7 +87,8 @@ Do not use this skill when the request is not about issue state analytics:
 5. Use normalized fields for reporting.
 - Type from `type/*` labels.
 - Priority from `priority/*` labels.
-- Parent from issue body line `Parent: #<number>`.
+- Parent from native GitHub relationship when available.
+- If native relationship is unavailable, use issue body line `Parent: #<number>` as trace-only fallback and flag it as non-native.
 
 6. Apply token-usage discipline.
 - Request minimal fields needed for this report.
@@ -132,7 +133,7 @@ Detailed report format: `skills/github-state-tracker/references/reporting-spec.m
 - [ ] Snapshot JSON produced
 - [ ] Markdown report produced
 - [ ] Priority and type counts included
-- [ ] Parent-child linkage extracted where present
+- [ ] Parent-child context extracted and source noted (native link vs trace-only marker)
 - [ ] Delta section includes new/closed/changed totals
 - [ ] Retrieval scope is bounded for token efficiency
 

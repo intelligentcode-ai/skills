@@ -51,6 +51,16 @@ def compose_body(base_body: str, issue_type: str, priority: str, parent: int | N
     return "\n".join(lines).strip()
 
 
+def print_parent_link_notice(parent: int | None) -> None:
+    if parent is None:
+        return
+    print(
+        "NOTE: Added 'Parent: #<number>' marker to issue body for traceability only. "
+        "Create and verify native GitHub parent-child relationship separately.",
+        file=sys.stderr,
+    )
+
+
 def ensure_auth() -> None:
     try:
         result = subprocess.run(["gh", "auth", "status"], text=True, capture_output=True, timeout=TIMEOUT_SECONDS)
@@ -152,12 +162,14 @@ def main() -> int:
                     "type": args.type,
                     "priority": args.priority,
                     "parent": args.parent,
+                    "native_relationship_required": args.parent is not None,
                     "command": cmd,
                     "body": body,
                 },
                 indent=2,
             )
         )
+        print_parent_link_notice(args.parent)
         return 0
 
     ensure_auth()
@@ -171,6 +183,7 @@ def main() -> int:
         return result.returncode
 
     print(result.stdout.strip())
+    print_parent_link_notice(args.parent)
     return 0
 
 

@@ -54,7 +54,7 @@ Do not use this skill when requests are unrelated to issue planning:
 | GIP-T2 | Positive trigger | "Create a bug issue with priority and parent in GitHub" | Skill triggers |
 | GIP-T3 | Negative trigger | "Fix this TypeScript null check bug" | Skill does not trigger |
 | GIP-T4 | Negative trigger | "Create a landing page hero section" | Skill does not trigger |
-| GIP-T5 | Behavior | Skill is triggered for GitHub planning/tracking | Prefer gh CLI/scripts for token efficiency; resolve target repo from user input or current upstream repo; optionally use MCP proxy + GitHub MCP tools; enforce labels/priorities/parent-child linkage; communicate requirements and platform-specific run commands clearly |
+| GIP-T5 | Behavior | Skill is triggered for GitHub planning/tracking | Prefer gh CLI/scripts for token efficiency; resolve target repo from user input or current upstream repo; optionally use MCP proxy + GitHub MCP tools; enforce labels/priorities/parent-child linkage; communicate requirements and platform-specific run commands clearly; verify native parent/child links |
 
 ## Workflow
 
@@ -90,9 +90,12 @@ Do not use this skill when requests are unrelated to issue planning:
 - MCP fallback path: use GitHub MCP issue creation/update tools with explicit type/priority labels and optional parent marker.
 - Use dry-run and minimal field selection for sensitive repos.
 
-6. Encode parent-child relationship in a GitHub-compatible way.
-- Always include `Parent: #<number>` in child issue body when `--parent` is provided.
-- For epic parents, maintain child checklist in the epic body using markdown task list links.
+6. Encode parent-child relationship correctly.
+- Always include `Parent: #<number>` in child issue body when `--parent` is provided for human traceability.
+- Treat body marker as trace text only; it is not a native GitHub relationship.
+- Create native GitHub parent-child relationship via GitHub UI or API workflow supported by your environment.
+- Verify native link exists before reporting hierarchy creation success.
+- For epic parents, you may additionally maintain a child checklist in the epic body.
 
 7. Apply token-usage discipline.
 - Fetch only required fields (avoid large body payloads unless parent parsing is required).
@@ -128,7 +131,7 @@ Do not use this skill when requests are unrelated to issue planning:
 | Finding | Issue with `type/finding` label |
 | Work-Item | Issue with `type/work-item` label |
 | Priority | `priority/p0` (highest) to `priority/p3` |
-| Parent-child | `Parent: #<number>` in child body + parent checklist |
+| Parent-child | Native GitHub parent-child link (required) + optional `Parent: #<number>` body marker |
 
 Detailed examples: `skills/github-issues-planning/references/issue-taxonomy.md`
 
@@ -139,7 +142,8 @@ Detailed examples: `skills/github-issues-planning/references/issue-taxonomy.md`
 - [ ] Target repo resolved (explicit input or current upstream)
 - [ ] Issue has one valid type label
 - [ ] Issue has one valid priority label
-- [ ] Parent linkage is present when requested
+- [ ] Parent trace marker is present when requested
+- [ ] Native GitHub parent-child relationship is created and verified when requested
 - [ ] Retrieval/creation scope is bounded for token efficiency
 - [ ] Final response includes issue URL and metadata summary
 
@@ -151,5 +155,5 @@ When this skill runs, produce:
 2. Requirements status (`gh`, auth, Python launcher, target repo)
 3. Exact command(s) used (or dry-run command)
 4. Created/updated issue IDs and URLs
-5. Type/priority/parent-child summary
+5. Type/priority/parent-child summary (including native-link verification status)
 6. Any blockers (missing permissions, missing repo access, auth failures)

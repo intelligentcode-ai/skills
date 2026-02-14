@@ -12,6 +12,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote, urlparse
 
 TYPE_PREFIX = "type/"
 PRIORITY_PREFIX = "priority/"
@@ -156,6 +157,23 @@ def build_report(repo: str, snapshot_at: str, issues: list[dict[str, Any]], delt
     open_items = [i for i in issues if i["state"] != "closed"]
     open_items.sort(key=lambda x: (PRIORITY_ORDER.get(x["priority"], 99), x.get("number") or 0))
 
+    def safe_issue_ref(issue_number: Any, issue_url: str) -> str:
+        issue_num = str(issue_number or "").strip()
+        fallback = f"#{issue_num}" if issue_num else "#?"
+        if not issue_url:
+            return fallback
+
+        parsed = urlparse(issue_url)
+        if parsed.scheme not in {"http", "https"}:
+            return fallback
+        if parsed.netloc.lower() not in {"github.com", "www.github.com"}:
+            return fallback
+
+        safe_url = quote(issue_url, safe=":/?&=#%-._~")
+        if len(safe_url) > 2048:
+            return fallback
+        return f"[#{issue_num}]({safe_url})" if issue_num else fallback
+
     lines = [
         f"# GitHub Issue State Report ({repo})",
         "",
@@ -196,7 +214,7 @@ def build_report(repo: str, snapshot_at: str, issues: list[dict[str, Any]], delt
         parent = f"#{issue['parent']}" if issue.get("parent") else "-"
         issue_number = issue.get("number")
         issue_url = str(issue.get("url") or "").strip()
-        issue_ref = f"[#{issue_number}]({issue_url})" if issue_url else f"#{issue_number}"
+        issue_ref = safe_issue_ref(issue_number, issue_url)
         safe_priority = escape_md_cell(issue.get("priority"))
         safe_type = escape_md_cell(issue.get("type"))
         safe_parent = escape_md_cell(parent)

@@ -9,7 +9,7 @@ tags:
   - pull-request
   - commit
   - review
-version: "10.2.14"
+version: "10.2.15"
 author: "Karsten Samaschke"
 contact-email: "karsten@vanillacore.net"
 website: "https://vanillacore.net"
@@ -18,6 +18,31 @@ website: "https://vanillacore.net"
 # Git Commit and Pull Request Skill
 
 This skill handles git commits and pull requests with specific formatting requirements.
+
+## Triggering
+
+Use this skill when the request requires commit, push, PR creation, or PR merge actions.
+
+Use this skill when prompts include:
+- commit or push the current changes
+- create/open/update a pull request
+- prepare changes for review and submit to `dev`
+- merge an approved PR after gates pass
+
+Do not use this skill for:
+- explanation-only prompts with no git action request
+- planning-only prompts without commit/PR intent
+- release orchestration requests that should be handled by `release`
+
+## Acceptance Tests
+
+| Test ID | Type | Prompt / Condition | Expected Result |
+| --- | --- | --- | --- |
+| CPR-T1 | Positive trigger | "Commit these changes and push the branch" | skill triggers |
+| CPR-T2 | Positive trigger | "Create a PR to dev with a summary and test plan" | skill triggers |
+| CPR-T3 | Negative trigger | "Explain this PR feedback" | skill does not trigger |
+| CPR-T4 | Negative trigger | "Plan work items for these findings" | skill does not trigger |
+| CPR-T5 | Behavior | skill triggered for commit/PR | enforces prerequisites, branch/worktree policy, and no-AI-attribution commit/PR content |
 
 ## PR TARGET BRANCH (CRITICAL)
 
@@ -366,6 +391,16 @@ gh pr create --title "feat: Add user authentication" --body "$(cat <<'EOF'
 EOF
 )"
 ```
+
+## Output Contract
+
+When this skill runs, produce:
+1. resolved branch/worktree policy (`git.worktree_branch_behavior`) and enforcement result
+2. gate summary (tests, reviewer, validate, tracking verification)
+3. commit details (hash, message) when commit is performed
+4. PR details (number/url/base/head/title) when PR is created/updated
+5. merge decision/status when merge is requested
+6. any blocker with exact failed gate and required remediation
 
 ## Reminders
 

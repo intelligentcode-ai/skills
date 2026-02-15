@@ -40,6 +40,26 @@ Before releasing:
 4. No blocking review findings
 5. `validate` checks pass for release scope
 6. Backend-aware tracking verification passes
+7. Worktree/branch policy resolved from ICA config (`git.worktree_branch_behavior`)
+8. Explicit user confirmation for larger changes (release is always a larger change)
+
+## Worktree + Branch Policy (ICA Config)
+
+Read `git.worktree_branch_behavior` from `ica.config.json` hierarchy.
+
+Allowed values:
+- `always_new`
+- `ask`
+- `current_branch`
+
+If missing:
+- ask user which behavior to use
+- persist in project/user `ica.config.json`
+
+Release enforcement:
+- if `always_new`, use a dedicated release worktree + branch before release actions
+- if `ask`, ask before release actions and follow response
+- even with `current_branch`, release remains a larger-change flow and requires explicit confirmation
 
 ## Validation And Check Gates (MANDATORY)
 
@@ -48,6 +68,7 @@ Pre-release gate:
 - tests + reviewer + validate all pass
 - backend-aware tracking verification passes
 - release PR target is `main`
+- branch/worktree policy is satisfied for release scope
 
 Pre-tag gate:
 - release PR merged successfully

@@ -105,6 +105,27 @@ Mode behavior for actionable findings/comments:
 - `batch_confirm`: ask once for grouped confirmation, then run full flow
 - `item_confirm`: confirm each candidate item before creation, then continue with plan -> run
 
+## Workspace + Branch Isolation (ICA Config, MANDATORY)
+
+Read `git.worktree_branch_behavior` from `ica.config.json` hierarchy.
+
+Allowed values:
+- `always_new` - always create a dedicated worktree + branch before implementation changes
+- `ask` - ask per scoped work unit whether to create a dedicated worktree + branch
+- `current_branch` - allow current branch workflow (still subject to large-change confirmation gate)
+
+If `git.worktree_branch_behavior` is missing:
+- ask explicitly which behavior to use for this project
+- persist the chosen value in project `ica.config.json` (preferred) or user `ica.config.json`
+
+Default branch naming when creating a new branch:
+- `codex/<short-scope-slug>-<YYYYMMDDHHMMSS>`
+
+Mandatory behavior:
+- if `always_new`, do not implement on the current branch; create and switch to the new worktree/branch first
+- never perform implementation changes directly on `main` or `dev`
+- if release work is requested, use a dedicated release worktree/branch before release actions
+
 ## Phase Overview
 
 ```
@@ -196,6 +217,24 @@ When actionable findings/comments are detected:
       batch_auto    -> proceed automatically
       batch_confirm -> ask once for grouped confirmation
       item_confirm  -> ask per item before creation
+```
+
+### Step 0.1d: Resolve Worktree/Branch Behavior (MANDATORY)
+```
+Resolve from ICA config hierarchy:
+  - git.worktree_branch_behavior (always_new | ask | current_branch)
+
+If missing:
+  - ask user which behavior to use
+  - persist in project or user ica.config.json
+
+If value is always_new:
+  - create a new worktree + codex/* branch before implementation
+  - continue all implementation on that branch/worktree only
+
+If value is ask:
+  - ask for this work scope before implementation
+  - if approved, create a new worktree + codex/* branch
 ```
 
 ### Step 0.2: create (Typed Work Items)
@@ -594,6 +633,7 @@ IF attempting commit/push/PR/merge/release without validation + tracking checks:
 - Ambiguous requirements needing clarification
 - Multiple valid approaches with trade-offs
 - High-risk changes that could break things
+- Large changes (always ask before proceeding)
 - **Merge approval** (always)
 
 **DO NOT pause for:**
@@ -604,6 +644,17 @@ IF attempting commit/push/PR/merge/release without validation + tracking checks:
 - Removing unused code
 - Extracting duplicated code
 - Adding null checks
+
+## Large-Change Confirmation Gate (MANDATORY)
+
+You MUST ask for explicit confirmation before larger changes, regardless of other settings.
+
+Treat as larger changes:
+- cross-repository changes
+- creation of new branches/worktrees or branch strategy changes
+- broad refactors spanning multiple components
+- release operations (merge to `main`, tagging, publishing)
+- any change set with non-obvious blast radius
 
 ## Output Contract
 

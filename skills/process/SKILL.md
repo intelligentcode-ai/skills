@@ -1,6 +1,6 @@
 ---
 name: "process"
-description: "Activate when user explicitly requests the development workflow process, asks about workflow phases, or says \"start work\", \"begin development\", \"follow the process\". Activate when creating PRs or deploying to production. NOT for simple questions or minor fixes. Enforces TDD by default for implementation work and executes AUTONOMOUSLY - only pauses when human decision is genuinely required."
+description: "Orchestrate the end-to-end development workflow with autonomous quality gates. Use when users ask to implement/run workflow phases, start or continue development, handle review/QA findings, or process actionable comments by routing through create-work-items -> plan-work-items -> run-work-items. Enforces TDD by default for implementation work and only pauses for genuine decisions."
 category: "process"
 scope: "development"
 subcategory: "orchestration"
@@ -18,6 +18,42 @@ website: "https://vanillacore.net"
 # Development Process
 
 **AUTONOMOUS EXECUTION.** This process runs automatically. It only pauses when human input is genuinely required.
+
+## Triggering
+
+Use this skill when the request needs end-to-end orchestration of tracked development work.
+
+Use this skill when prompts include:
+- start, continue, or run development workflow phases
+- implement/fix work that should be tracked and executed with gates
+- handle actionable findings/comments from review, PR feedback, QA, regressions, or defect reports
+- execute create -> plan -> run flow without manual per-skill invocation
+
+Do not use this skill for:
+- explanation-only prompts with no implementation or workflow action
+- status-only prompts that only request reporting without execution
+- isolated one-off questions unrelated to tracked development work
+
+## Acceptance Tests
+
+| Test ID | Type | Prompt / Condition | Expected Result |
+| --- | --- | --- | --- |
+| PRC-T1 | Positive trigger | "Address these 6 PR review comments end-to-end." | skill triggers |
+| PRC-T2 | Positive trigger | "Start work on this bug and follow the workflow." | skill triggers |
+| PRC-T3 | Negative trigger | "Explain why this check failed." | skill does not trigger |
+| PRC-T4 | Negative trigger | "Show backlog summary only." | skill does not trigger |
+| PRC-T5 | Behavior | skill triggered for actionable findings/comments | routes through create-work-items -> plan-work-items -> run-work-items using configured pipeline mode |
+
+## Canonical Actionable Findings Definition
+
+Treat these as actionable findings/comments:
+- review findings
+- PR comments requesting code/documentation changes
+- QA findings
+- regressions
+- explicit defect reports
+
+Do not create or run work for non-actionable commentary (questions, explanations, praise, status updates).
 
 ## Branch Workflow (CRITICAL)
 
@@ -57,6 +93,17 @@ Skill mapping:
 - `create` -> `create-work-items` (with `pm` support as needed)
 - `plan` -> `plan-work-items` (with `github-state-tracker` support as needed)
 - `run` -> `run-work-items` (with `autonomy` + `parallel-execution` support as needed)
+
+## Work-Item Pipeline Settings (ICA Config)
+
+Read these values from `ica.config.json` hierarchy:
+- `autonomy.work_item_pipeline_enabled` (default `true`)
+- `autonomy.work_item_pipeline_mode` (`batch_auto` | `batch_confirm` | `item_confirm`, default `batch_auto`)
+
+Mode behavior for actionable findings/comments:
+- `batch_auto`: run full create -> plan -> run flow without additional confirmation
+- `batch_confirm`: ask once for grouped confirmation, then run full flow
+- `item_confirm`: confirm each candidate item before creation, then continue with plan -> run
 
 ## Phase Overview
 
@@ -137,12 +184,30 @@ Persistence rules:
   - If user requests default change, update `tdd.enabled` in selected config.
 ```
 
+### Step 0.1c: Resolve Work-Item Pipeline Mode (MANDATORY)
+```
+Resolve from ICA config hierarchy:
+  - autonomy.work_item_pipeline_enabled (default true)
+  - autonomy.work_item_pipeline_mode (default batch_auto)
+
+When actionable findings/comments are detected:
+  - If pipeline is disabled: do not auto-orchestrate; wait for explicit create/plan/run instruction
+  - If enabled:
+      batch_auto    -> proceed automatically
+      batch_confirm -> ask once for grouped confirmation
+      item_confirm  -> ask per item before creation
+```
+
 ### Step 0.2: create (Typed Work Items)
 ```
 Invoke create-work-items.
 
 Create or normalize work items as typed units:
   epic, story, feature, bug, finding, work-item
+
+When actionable findings/comments are present and
+`autonomy.work_item_pipeline_enabled=true`, this step is mandatory
+even without an explicit "create" command.
 
 If GitHub backend is active:
   - Use github-issues-planning workflow to create typed issues
@@ -158,13 +223,26 @@ Invoke plan-work-items.
 
 Prioritize and define dependencies.
 
+When actionable findings/comments were captured in Step 0.2, planning is
+mandatory before any execution starts.
+
 If parent/child hierarchy exists on GitHub:
   - Create native GitHub relationship (sub-issue/parent-child link)
   - Do NOT treat "Parent: #123" body text as a native link
   - Verify link exists before marking planning complete
 ```
 
-### Step 0.4: run-ready Check
+### Step 0.4: run (Select + Execute Next Actionable Item)
+```
+Invoke run-work-items after create + plan are complete.
+
+run-work-items MUST:
+  - select the next unblocked actionable item
+  - execute with process quality gates
+  - update backend state transitions continuously
+```
+
+### Step 0.5: run-ready Check
 ```
 Proceed to Phase 1 only when:
   - Next actionable item is identified
@@ -175,7 +253,7 @@ Proceed to Phase 1 only when:
   - if TDD is being performed: explicit RED/GREEN/REFACTOR items exist and are sequenced
 ```
 
-### Step 0.5: Validation + Check Gate (MANDATORY)
+### Step 0.6: Validation + Check Gate (MANDATORY)
 ```
 Run `validate` skill before implementation starts.
 
@@ -526,6 +604,16 @@ IF attempting commit/push/PR/merge/release without validation + tracking checks:
 - Removing unused code
 - Extracting duplicated code
 - Adding null checks
+
+## Output Contract
+
+When this skill runs, produce:
+1. whether actionable findings/comments were detected and why
+2. pipeline setting resolution (`work_item_pipeline_enabled`, `work_item_pipeline_mode`)
+3. orchestration summary for create -> plan -> run (including any confirmations required by mode)
+4. selected next actionable item and current state transition result
+5. gate summary (validation, TDD phase status, tracking verification)
+6. next action (`continue` / `blocked` / `done`)
 
 ## Commands
 

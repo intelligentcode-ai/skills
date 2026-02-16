@@ -1,5 +1,5 @@
 ---
-name: "commit-pr"
+name: commit-pr
 description: "Activate when user asks to commit, push changes, create a PR, open a pull request, or submit changes for review. Activate when process skill reaches commit or PR phase. Provides commit message formatting and PR structure. PRs default to dev branch, not main. Works with git-privacy skill."
 category: "process"
 scope: "development"
@@ -9,7 +9,7 @@ tags:
   - pull-request
   - commit
   - review
-version: "10.2.16"
+version: "10.2.17"
 author: "Karsten Samaschke"
 contact-email: "karsten@vanillacore.net"
 website: "https://vanillacore.net"
@@ -43,6 +43,43 @@ Do not use this skill for:
 | CPR-T3 | Negative trigger | "Explain this PR feedback" | skill does not trigger |
 | CPR-T4 | Negative trigger | "Plan work items for these findings" | skill does not trigger |
 | CPR-T5 | Behavior | skill triggered for commit/PR | enforces prerequisites, branch/worktree policy, and no-AI-attribution commit/PR content |
+| CPR-T6 | Behavior | missing `autonomy.system_level` in user `ica.config.json` | asks user, persists `autonomy.system_level`, then proceeds |
+| CPR-T7 | Behavior | missing `autonomy.project_level` in project `ica.config.json` | asks user, persists `autonomy.project_level`, then proceeds |
+| CPR-T8 | Behavior | project autonomy is `follow-system` | resolves effective autonomy and applies it to confirmation behavior for commit/push/PR/merge |
+
+## Autonomy Level Resolution (MANDATORY)
+
+Resolve autonomy settings from `ica.config.json` hierarchy (not tracking config):
+- user config:
+  - `${ICA_HOME}/ica.config.json`
+  - `$HOME/.codex/ica.config.json`
+  - `$HOME/.claude/ica.config.json`
+- project config:
+  - `./ica.config.json`
+
+Required keys:
+- `autonomy.system_level`: `L1` | `L2` | `L3` (default `L2`)
+- `autonomy.project_level`: `follow-system` | `L1` | `L2` | `L3` (default `follow-system`)
+
+Bootstrap prompts (if missing):
+- If `autonomy.system_level` missing:
+  - ask: "No system autonomy level is configured. Set system autonomy level to `L2` (recommended), `L1`, or `L3`?"
+  - persist in user `ica.config.json`
+- If `autonomy.project_level` missing:
+  - ask: "No project autonomy level is configured. Set project autonomy level to `follow-system` (recommended), `L1`, `L2`, or `L3`?"
+  - persist in project `ica.config.json`
+
+Compatibility:
+- If legacy `autonomy.level` exists and `autonomy.system_level` is missing, treat legacy value as system level for this run and persist it as `autonomy.system_level`.
+
+Effective level:
+- if `project_level` is `L1`/`L2`/`L3`, use project level
+- if `project_level` is `follow-system`, use system level
+
+Effective-level behavior for this skill:
+- `L1`: require explicit confirmation before each commit/push/PR/merge action
+- `L2`: follow standard gated flow with confirmations for significant/high-impact actions
+- `L3`: proceed automatically once all gates pass (except required explicit approvals for protected actions)
 
 ## PR TARGET BRANCH (CRITICAL)
 
@@ -71,18 +108,23 @@ gh pr create --base main  # DO NOT DO THIS!
 
 **Before ANY commit or PR, you MUST:**
 
-0. **Resolve branch/worktree behavior from ICA config**
+0. **Resolve effective autonomy level from ICA config**
+   - Resolve `autonomy.system_level` + `autonomy.project_level` and effective level (`L1`/`L2`/`L3`)
+   - If either key is missing: ask user and persist in `ica.config.json` at correct scope
+   - Apply effective-level confirmation behavior for this run
+
+1. **Resolve branch/worktree behavior from ICA config**
    - Read `git.worktree_branch_behavior` from `ica.config.json`
    - If missing: ask user, persist choice, then continue
    - If `always_new`: ensure changes are on a dedicated worktree + prefixed branch
    - Never commit implementation work directly on `main` or `dev`
 
-1. **Run tests** - All tests must pass
-2. **Run reviewer skill** - Must complete with no blocking findings
-3. **Fix all findings** - Auto-fix or get human decision
-4. **Run validate skill checks** - Ensure completion criteria + state transition validity
-5. **Run backend-aware tracking verification** for the selected backend
-6. **Confirm larger changes explicitly** - Always ask before committing broad/high-impact changes
+2. **Run tests** - All tests must pass
+3. **Run reviewer skill** - Must complete with no blocking findings
+4. **Fix all findings** - Auto-fix or get human decision
+5. **Run validate skill checks** - Ensure completion criteria + state transition validity
+6. **Run backend-aware tracking verification** for the selected backend
+7. **Confirm larger changes explicitly** - Always ask before committing broad/high-impact changes
 
 ```
 BLOCKED until prerequisites pass:
@@ -96,6 +138,7 @@ BLOCKED until prerequisites pass:
 ## Validation And Check Gates (MANDATORY)
 
 Pre-commit gate:
+- autonomy level resolved and applied for this scope
 - tests pass
 - reviewer has no blocking findings
 - `validate` checks pass
@@ -103,6 +146,7 @@ Pre-commit gate:
 
 Pre-PR-create gate:
 - pre-commit gate already passed for HEAD
+- autonomy level resolved and applied for this scope
 - branch target is valid (`dev` by default; `main` only for explicit release)
 - backend tracking state is synchronized for items included in PR
 - branch/worktree policy is satisfied (`always_new` requires dedicated worktree + prefixed branch)
@@ -113,6 +157,7 @@ Pre-merge gate:
 - `validate` checks pass for merge candidate
 - backend-aware tracking verification passes
 - explicit approval exists (or configured standing approval)
+- autonomy level resolved and applied for merge scope
 
 Fail-closed behavior:
 - if any gate fails, STOP and do not commit/push/create-PR/merge.
@@ -403,12 +448,13 @@ EOF
 ## Output Contract
 
 When this skill runs, produce:
-1. resolved branch/worktree policy (`git.worktree_branch_behavior`) and enforcement result
-2. gate summary (tests, reviewer, validate, tracking verification)
-3. commit details (hash, message) when commit is performed
-4. PR details (number/url/base/head/title) when PR is created/updated
-5. merge decision/status when merge is requested
-6. any blocker with exact failed gate and required remediation
+1. autonomy resolution (`system_level`, `project_level`, effective level, and whether defaults were bootstrapped)
+2. resolved branch/worktree policy (`git.worktree_branch_behavior`) and enforcement result
+3. gate summary (tests, reviewer, validate, tracking verification)
+4. commit details (hash, message) when commit is performed
+5. PR details (number/url/base/head/title) when PR is created/updated
+6. merge decision/status when merge is requested
+7. any blocker with exact failed gate and required remediation
 
 ## Reminders
 

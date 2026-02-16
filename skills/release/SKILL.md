@@ -1,5 +1,5 @@
 ---
-name: "release"
+name: release
 description: "Activate when user asks to release, bump version, cut a release, merge to main, or tag a version. Handles version bumping (semver), CHANGELOG updates, PR merging, git tagging, and GitHub release creation."
 category: "process"
 scope: "development"
@@ -9,7 +9,7 @@ tags:
   - versioning
   - changelog
   - github
-version: "10.2.15"
+version: "10.2.16"
 author: "Karsten Samaschke"
 contact-email: "karsten@vanillacore.net"
 website: "https://vanillacore.net"
@@ -43,6 +43,43 @@ Do not use this skill for:
 | RLS-T3 | Negative trigger | "Create a PR to dev for this feature" | skill does not trigger |
 | RLS-T4 | Negative trigger | "Explain release strategy options" | skill does not trigger |
 | RLS-T5 | Behavior | skill triggered for release flow | enforces release gates, worktree/branch policy, and explicit approval for non-draft publish |
+| RLS-T6 | Behavior | missing `autonomy.system_level` in user `ica.config.json` | asks user, persists `autonomy.system_level`, then proceeds |
+| RLS-T7 | Behavior | missing `autonomy.project_level` in project `ica.config.json` | asks user, persists `autonomy.project_level`, then proceeds |
+| RLS-T8 | Behavior | project autonomy is `follow-system` | resolves effective autonomy and applies it to release confirmation behavior |
+
+## Autonomy Level Resolution (MANDATORY)
+
+Resolve autonomy settings from `ica.config.json` hierarchy (not tracking config):
+- user config:
+  - `${ICA_HOME}/ica.config.json`
+  - `$HOME/.codex/ica.config.json`
+  - `$HOME/.claude/ica.config.json`
+- project config:
+  - `./ica.config.json`
+
+Required keys:
+- `autonomy.system_level`: `L1` | `L2` | `L3` (default `L2`)
+- `autonomy.project_level`: `follow-system` | `L1` | `L2` | `L3` (default `follow-system`)
+
+Bootstrap prompts (if missing):
+- If `autonomy.system_level` missing:
+  - ask: "No system autonomy level is configured. Set system autonomy level to `L2` (recommended), `L1`, or `L3`?"
+  - persist in user `ica.config.json`
+- If `autonomy.project_level` missing:
+  - ask: "No project autonomy level is configured. Set project autonomy level to `follow-system` (recommended), `L1`, `L2`, or `L3`?"
+  - persist in project `ica.config.json`
+
+Compatibility:
+- If legacy `autonomy.level` exists and `autonomy.system_level` is missing, treat legacy value as system level for this run and persist it as `autonomy.system_level`.
+
+Effective level:
+- if `project_level` is `L1`/`L2`/`L3`, use project level
+- if `project_level` is `follow-system`, use system level
+
+Effective-level behavior for release:
+- `L1`: require explicit confirmation for each release transition (version bump commit, PR merge, tag, publish)
+- `L2`: standard release flow; explicit confirmation remains mandatory for larger-change release actions
+- `L3`: automate mechanical release actions when gates pass and release automation is enabled, while still requiring explicit approval for non-draft publish
 
 ## Auto-Merge vs Agent Merge
 
@@ -66,7 +103,8 @@ Before releasing:
 5. `validate` checks pass for release scope
 6. Backend-aware tracking verification passes
 7. Worktree/branch policy resolved from ICA config (`git.worktree_branch_behavior`)
-8. Explicit user confirmation for larger changes (release is always a larger change)
+8. Effective autonomy level resolved from ICA config (`autonomy.system_level` + `autonomy.project_level`)
+9. Explicit user confirmation for larger changes (release is always a larger change)
 
 ## Worktree + Branch Policy (ICA Config)
 
@@ -94,16 +132,19 @@ Pre-release gate:
 - backend-aware tracking verification passes
 - release PR target is `main`
 - branch/worktree policy is satisfied for release scope
+- autonomy level resolved and applied for release scope
 
 Pre-tag gate:
 - release PR merged successfully
 - local `main` is up to date and clean
 - validate checks pass for release artifacts (version/changelog)
+- autonomy level resolved and applied for release scope
 
 Pre-publish gate:
 - tag exists remotely
 - release notes prepared and reviewed
 - explicit user approval for non-draft publish (draft creation is safe-default)
+- autonomy level resolved and applied for release scope
 
 Fail-closed behavior:
 - if any gate fails, STOP release progression and surface exact blocker.
@@ -117,6 +158,11 @@ These controls are driven by workflow configuration (AgentTask `workflow.*` and 
 Safety defaults:
 - Never auto-merge to `main` unless the user explicitly requested a release workflow.
 - Never publish a non-draft GitHub release without explicit user approval (draft releases are OK).
+
+Autonomy-level enforcement:
+- `L1`: pause for explicit user confirmation at each release transition.
+- `L2`: continue routine release steps after gates pass; keep explicit confirmations for larger-change actions.
+- `L3`: may proceed through gated release steps automatically when workflow settings allow, but must still respect explicit-approval rules above.
 
 ## Release Workflow
 
@@ -355,8 +401,9 @@ git revert <merge-commit-sha>
 
 When this skill runs, produce:
 1. release scope confirmation (repo, PR, branch target, bump type)
-2. resolved branch/worktree policy (`git.worktree_branch_behavior`) and enforcement result
-3. gate summary (tests, reviewer receipt, validate, tracking verification)
-4. version/changelog update summary
-5. merge/tag/release results (PR merge status, tag, release URL/draft status)
-6. explicit blocker details when any gate fails
+2. autonomy resolution (`system_level`, `project_level`, effective level, and whether defaults were bootstrapped)
+3. resolved branch/worktree policy (`git.worktree_branch_behavior`) and enforcement result
+4. gate summary (tests, reviewer receipt, validate, tracking verification)
+5. version/changelog update summary
+6. merge/tag/release results (PR merge status, tag, release URL/draft status)
+7. explicit blocker details when any gate fails

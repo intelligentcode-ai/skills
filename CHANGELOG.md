@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-02-16
+
+### Changed
+- Enforced mandatory `create-work-items` -> `plan-work-items` -> `run-work-items` involvement in `autonomy` and `process` orchestration cycles, with fail-closed behavior when invocation evidence is missing.
+- Enforced verifiable `ICA-SECURITY-REVIEW-RECEIPT` requirements in `commit-pr` and `release`, including dedicated subagent execution marker, run ID, and executor/author verification.
+- Added stricter acceptance tests and output/validation contract coverage for the above workflow guarantees.
+
 ## [1.1.3] - 2026-02-16
 
 ### Changed
@@ -12,6 +19,7 @@ All notable changes to this project are documented in this file.
 - Enforced post-PR review and security receipt loops in `commit-pr`, including pass-with-note behavior when no required checks are configured.
 - Enforced pre-release review/security receipt loops in `release` with current head-SHA verification before merge.
 - Normalized skill metadata names for validator compatibility in planning/work execution skills.
+
 ## [1.1.2] - 2026-02-15
 
 ### Removed

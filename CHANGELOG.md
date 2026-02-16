@@ -12,7 +12,6 @@ All notable changes to this project are documented in this file.
 - Enforced post-PR review and security receipt loops in `commit-pr`, including pass-with-note behavior when no required checks are configured.
 - Enforced pre-release review/security receipt loops in `release` with current head-SHA verification before merge.
 - Normalized skill metadata names for validator compatibility in planning/work execution skills.
-
 ## [1.1.2] - 2026-02-15
 
 ### Removed
